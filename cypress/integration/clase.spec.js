@@ -1,57 +1,63 @@
-describe("login page", () => {
-  it("mocha - chai", () => {
-    expect(2).to.equal(2);
-    expect([1, 2]).to.deep.equal([1, 2]);
-    expect([1, 2]).to.not.deep.equal([1, 2, 3]);
-    expect({ a: 1, b: 2 }).to.have.property("a", 1);
-  });
-  it("has a header", () => {
-    cy.visit("/login");
+it("mocha - chai", () => {
+  expect(2).to.equal(2);
+  expect([1, 2]).to.deep.equal([1, 2]);
+  expect([1, 2]).to.not.deep.equal([1, 2, 3]);
+  expect({ a: 1, b: 2 }).to.have.property("a", 1);
+});
+describe("home page", () => {
+  it("the login button has text 'LOG IN' and redirects to login page when clicked", () => {
+    cy.visit("/");
 
-    cy.get("h1.login-container__main-heading").should("have.text", "ireNotion");
-  });
-  it("has a login button that enables when typing on all inputs", () => {
-    cy.visit("/login");
+    cy.get(".nav__button--login").should("have.text", " LOG IN");
 
-    cy.get("button.login-form__button--login").as("loginButton");
+    cy.get(".nav__button--login").click();
 
-    cy.get("@loginButton").should("be.disabled");
-
-    cy.get("input#username").type("hola");
-
-    cy.get("@loginButton").should("be.disabled");
-
-    cy.get("input#password").type("hola");
-
-    cy.get("@loginButton").should("not.be.disabled");
-  });
-  it("logs in when providing correct username and password", () => {
-    cy.visit("/login");
-    cy.intercept("POST", "/user/login").as("login");
-
-    cy.get("input#username").type(Cypress.env("USERNAME"));
-    cy.get("input#password").type(Cypress.env("PASSWORD"));
-
-    cy.get("button.login-form__button--login").click();
-
-    cy.wait("@login").its("response.statusCode").should("be.equal", 201);
-
-    cy.location("pathname").should("include", "/user-board");
+    cy.location("pathname").should("include", "/login");
   });
 });
 describe("user page", () => {
-  it("header disappears in tablet and mobile viewport", () => {
-    cy.visit("/login");
-
-    cy.get("input#username").type(Cypress.env("USERNAME"));
-    cy.get("input#password").type(Cypress.env("PASSWORD"));
-
-    cy.get("button.login-form__button--login").click();
+  it("has a header that disappears in tablet and mobile viewport", () => {
+    cy.login(Cypress.env("USERNAME"), Cypress.env("PASSWORD"));
 
     cy.get("h1.nav-bar__header").should("be.visible");
 
     cy.viewport(400, 600);
 
     cy.get("h1.nav-bar__header").should("not.be.visible");
+  });
+  it("has a button that creates a new table", () => {
+    cy.login(Cypress.env("USERNAME"), Cypress.env("PASSWORD"));
+
+    cy.intercept("POST", "/boards/create").as("createBoard");
+
+    cy.get("button.nav-bar__button--new-board").click();
+
+    cy.wait("@createBoard").its("response.statusCode").should("be.equal", 201);
+  });
+  it("has notes that can be modified with a modal", () => {
+    cy.login(Cypress.env("USERNAME"), Cypress.env("PASSWORD"));
+
+    cy.intercept("PUT", "/note/update").as("updateNote");
+
+    cy.get(".note.note-paragraph").eq(0).dblclick();
+
+    cy.get("textarea#text.note-update-form-paragraph__input")
+      .clear()
+      .type("hello isdi");
+
+    cy.get("#pink.note-update-form-paragraph__input").check();
+
+    cy.get(".note-update-form-paragraph__button").click();
+
+    cy.wait("@updateNote").then((intercepted) => {
+      const { request, response } = intercepted;
+
+      expect(response.statusCode).to.equal(200);
+      expect(request.body.updatedNote).to.have.property("color", "pink");
+      expect(request.body.updatedNote).to.have.property(
+        "paragraph",
+        "hello isdi"
+      );
+    });
   });
 });

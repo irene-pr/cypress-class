@@ -5,9 +5,10 @@ it("mocha - chai", () => {
   expect({ a: 1, b: 2 }).to.have.property("a", 1);
 });
 describe("home page", () => {
-  it("the login button has text 'LOG IN' and redirects to login page when clicked", () => {
+  beforeEach(() => {
     cy.visit("/");
-
+  });
+  it("the login button has text 'LOG IN' and redirects to login page when clicked", () => {
     cy.get(".nav__button--login").should("have.text", " LOG IN");
 
     cy.get(".nav__button--login").click();
@@ -16,9 +17,10 @@ describe("home page", () => {
   });
 });
 describe("user page", () => {
-  it("has a header that disappears in tablet and mobile viewport", () => {
+  beforeEach(() => {
     cy.login(Cypress.env("USERNAME"), Cypress.env("PASSWORD"));
-
+  });
+  it("has a header that disappears in tablet and mobile viewport", () => {
     cy.get("h1.nav-bar__header").should("be.visible");
 
     cy.viewport(400, 600);
@@ -26,8 +28,6 @@ describe("user page", () => {
     cy.get("h1.nav-bar__header").should("not.be.visible");
   });
   it("has a button that creates a new table", () => {
-    cy.login(Cypress.env("USERNAME"), Cypress.env("PASSWORD"));
-
     cy.intercept("POST", "/boards/create").as("createBoard");
 
     cy.get("button.nav-bar__button--new-board").click();
@@ -35,8 +35,6 @@ describe("user page", () => {
     cy.wait("@createBoard").its("response.statusCode").should("be.equal", 201);
   });
   it("has notes that can be modified with a modal", () => {
-    cy.login(Cypress.env("USERNAME"), Cypress.env("PASSWORD"));
-
     cy.intercept("PUT", "/note/update").as("updateNote");
 
     cy.get(".note.note-paragraph").eq(0).dblclick();
